@@ -1,0 +1,14 @@
+medical-img-preparer/
+│
+├── data_prep/                  # 【程序一】离线预处理模块 (完全独立)
+│   ├── config_prep.py          # 仅存放原数据路径、Spacing参数、预处理输出路径
+│   └── run_preprocess.py       # 执行 Transforms 1~6，并 SaveImaged 到硬盘
+│
+├── train_prep/                 # 【程序二】在线训练与局部采样模块 (完全独立)
+│   ├── config_train.py         # 仅存放预处理后的数据路径、ROI_SIZE、超参数
+│   ├── dataset_train.py        # 仅包含 Transforms 7~13 (SpatialPadd, RandCrop等)
+│   └── train.py                # 训练主循环
+│
+└── data/                       # 数据集存放区 (与代码逻辑解耦)
+    ├── raw/                    # 原来的 Task07_Pancreas (imagesTr, labelsTr)
+    └── preprocessed/           # 程序一的输出目标，程序二的输入源 (目前为空)
