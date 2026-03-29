@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 import numpy as np
 from monai.transforms import (
     Compose, LoadImaged, EnsureChannelFirstd, Orientationd,
@@ -8,6 +9,19 @@ from monai.transforms import (
 from monai.data import Dataset, DataLoader
 from config_prep import ConfigPrep
 
+
+#log function
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from log_prep.runtime_logger import PrintMirrorLogger, infer_dataset_name
+
+#log function
+def _foreground_selector(x):
+    # Module-level function is picklable for DataLoader workers on Windows.
+    return x > -500
+#log function
 
 def run_offline_preprocessing():
     # 强制创建输出目录，防止 Windows 路径异常中断
@@ -28,7 +42,7 @@ def run_offline_preprocessing():
         CropForegroundd(
             keys=["image", "label"],
             source_key="image",
-            select_fn=lambda x: x > -500,
+            select_fn=_foreground_selector,
             margin=5
         ),
 
@@ -61,7 +75,7 @@ def run_offline_preprocessing():
     ])
 
     ds = Dataset(data=data_dicts, transform=preprocess_transforms)
-    loader = DataLoader(ds, batch_size=1, num_workers=4)
+    loader = DataLoader(ds, batch_size=1, num_workers=ConfigPrep.PREPROCESS_NUM_WORKERS)
 
     print(f"开始预处理，目标目录: {ConfigPrep.OUTPUT_DIR}")
     for i, _ in enumerate(loader):
@@ -70,4 +84,11 @@ def run_offline_preprocessing():
 
 
 if __name__ == "__main__":
-    run_offline_preprocessing()
+
+    #log function
+    dataset_name = infer_dataset_name(ConfigPrep.RAW_DATA_DIR)
+    with PrintMirrorLogger(module_name="data_prep", dataset_name=dataset_name, project_root=PROJECT_ROOT):
+    #log function
+
+
+        run_offline_preprocessing()

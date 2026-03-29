@@ -38,6 +38,7 @@ def get_train_loader():
             image_key="image", image_threshold=0
         ),
 
+        # 随机数据增强
         # 恢复独立的轴翻转概率
         RandFlipd(keys=["image", "label"], spatial_axis=[0], prob=0.10),
         RandFlipd(keys=["image", "label"], spatial_axis=[1], prob=0.10),

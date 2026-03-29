@@ -208,3 +208,5 @@ __marimo__/
 
 .github
 .idea
+logs
+data
