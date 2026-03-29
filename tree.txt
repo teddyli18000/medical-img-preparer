@@ -10,5 +10,5 @@ medical-img-preparer/
 │   └── train.py                # 训练主循环
 │
 └── data/                       # 数据集存放区 (与代码逻辑解耦)
-    ├── raw/                    # 原来的 Task07_Pancreas (imagesTr, labelsTr)
+    ├── raw/                    # (未启用)原来的 Task07_Pancreas (imagesTr, labelsTr)
     └── preprocessed/           # 程序一的输出目标，程序二的输入源 (目前为空)
