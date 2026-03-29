@@ -18,3 +18,6 @@ class ConfigPrep:
     # 强度归一化参数 (针对胰腺 CT)
     HU_MIN = -87
     HU_MAX = 199
+
+    # Windows 下预处理默认使用单进程，避免多进程 pickling 问题。
+    PREPROCESS_NUM_WORKERS = 0
