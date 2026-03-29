@@ -8,13 +8,10 @@ from monai.data import Dataset, DataLoader
 from config_train import ConfigTrain
 
 
-# Reference: Stevens et al. (2020). Deep Learning with PyTorch.
-# Chapter 4 emphasizes robust file pairing mechanisms to prevent silent data misalignment.
-# [Ref. 2, Chapter 4: Data Loaders]
-
 def get_train_loader():
     # 1. 自动寻找子文件夹中的预处理后文件
     # 核心修正 5：废弃双 glob 排序，改用绝对的一一对应机制
+    # 采用严格字符串替换的寻找策略，杜绝列表错位导致的数据污染
     all_images = sorted(
         glob.glob(os.path.join(ConfigTrain.PREPROCESSED_DIR, "**", "*_image_prep.nii.gz"), recursive=True))
     data_dicts = []
@@ -34,7 +31,7 @@ def get_train_loader():
 
         SpatialPadd(keys=["image", "label"], spatial_size=ConfigTrain.ROI_SIZE),
 
-        # 此时的 image_threshold=0 将完美避开 0.0 的空气背景，精准在人体内采样
+        # 背景已被完美处理为 0.0，image_threshold=0 将精准实现在人体有效区域内采样
         RandCropByPosNegLabeld(
             keys=["image", "label"], label_key="label",
             spatial_size=ConfigTrain.ROI_SIZE, pos=1, neg=1, num_samples=2,
