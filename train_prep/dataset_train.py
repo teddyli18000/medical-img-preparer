@@ -37,7 +37,10 @@ def get_train_loader():
         ),
 
         # 随机增强
-        RandFlipd(keys=["image", "label"], spatial_axis=[0, 1, 2], prob=0.10),
+        # 恢复独立的轴翻转，增加数据多样性
+        RandFlipd(keys=["image", "label"], spatial_axis=[0], prob=0.10),
+        RandFlipd(keys=["image", "label"], spatial_axis=[1], prob=0.10),
+        RandFlipd(keys=["image", "label"], spatial_axis=[2], prob=0.10),
         RandRotate90d(keys=["image", "label"], prob=0.10, max_k=3),
         RandShiftIntensityd(keys=["image"], offsets=0.10, prob=0.50),
     ])

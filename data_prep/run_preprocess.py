@@ -30,7 +30,21 @@ def run_offline_preprocessing():
             b_min=0.0, b_max=1.0, clip=True
         ),
         # 裁剪前景以缩小文件体积，减轻程序二的 IO 压力
-        CropForegroundd(keys=["image", "label"], source_key="image"),
+
+        # 1. 先用真实 CT 值裁剪外围空气 (>-500 HU 代表人体组织)
+        # margin=5 给边界留一点缓冲余地，防止把贴近边缘的器官切没
+        CropForegroundd(
+            keys=["image", "label"],
+            source_key="image",
+            select_fn=lambda x: x > -500,
+            margin=5
+        ),
+
+        # 2. 裁剪完之后，再安心地将特定软组织窗口映射到 0.0 ~ 1.0
+        ScaleIntensityRanged(
+            keys=["image"], a_min=ConfigPrep.HU_MIN, a_max=ConfigPrep.HU_MAX,
+            b_min=0.0, b_max=1.0, clip=True
+        ),
 
         # 3. 保存结果：每个病人一个文件夹
         # [Ref. 3, Section: IO Transforms] - SaveImaged 将中间态持久化至磁盘
