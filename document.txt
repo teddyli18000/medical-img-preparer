@@ -1,0 +1,48 @@
+Program 1 (data_prep)：Offline Data Preparation
+核心定位：这是一个只需运行一次的脚本。它负责消除不同医疗设备带来的异构性，将原始的 .nii.gz 文件“洗干净”，并大幅压缩无效背景体积，最后存回硬盘。
+
+绝对顺序：
+
+加载图像与标签 (LoadImaged)：将原始 NIfTI 文件读入内存
+
+附加通道维度 (EnsureChannelFirstd)：将张量转换为 PyTorch 要求的 (C, X, Y, Z) 格式。
+
+方向标准化 (Orientationd(axcodes="RAS"))：统一解剖学坐标系，确保所有图像的前后左右上下方向完全一致，防止模型产生空间认知错乱
+
+物理间距重采样 (Spacingd)：（配准的核心）将所有病患的图像强制拉伸/压缩到统一的物理分辨率（TODO:利用脚本算出的中位数 0.8027, 0.8027, 2.5000 mm）
+
+关键防污染机制：Image 必须使用连续插值（bilinear），Label 必须使用离散插值（nearest）
+
+强度归一化 (ScaleIntensityRanged)：利用 CT 值的物理特性开窗（例如 -87 到 199 HU），过滤掉骨骼和空气的干扰，并将特定器官（胰腺）的信号映射到适合神经网络权重的 0.0 到 1.0 之间
+
+前景裁剪 (CropForegroundd)：切除图像四周大面积的黑色无用空气边缘。这一步能极大缩小文件体积，减轻后续训练时的内存与 I/O 压力
+
+持久化保存 (SaveImaged)：将处理完毕的“完美中间态”张量，以每个病人独立文件夹的形式，重新保存为 .nii.gz 存入 preprocessed_MSD_Task7 目录
+
+
+
+
+
+
+Program 2 (train_prep):Online Training & Sampling
+核心定位：这是你日常高频运行的主程序。它直接读取程序一生成的“半成品”干净数据，在每个 Epoch 中动态地进行裁剪和数据增强，确保模型在显存内安全高效地收敛。
+
+train.py目前留空
+绝对顺序：
+
+加载预处理数据 (LoadImaged & EnsureChannelFirstd)：读取程序一生成的文件并附加上通道维度。
+
+边界填充 (SpatialPadd)：作为防爆雷机制，如果某个病人切除背景后的胰腺区域比你的目标 Patch（如 96×96×96）还要小，则在四周填充黑色边缘，确保后续裁剪函数不会因为张量过小而报错崩溃
+
+局部块随机采样 (RandCropByPosNegLabeld)：由于我的设备无法承受完整的 3D 图像，该算子会随机抠取固定尺寸（96×96×96）的三维实体块喂给网络。同时保证抠出来的块中包含前景器官和背景的比例均衡
+
+随机数据增强 (Data Augmentations)：为了防止过拟合，对抠出来的 3D 块进行在线的随机翻转（RandFlipd）、旋转（RandRotate90d）或强度偏移（RandShiftIntensityd）。
+
+TODO：transformer
+模型前向与反向传播 (Model Training)：将张量送入 Swin UNETR 网络，计算损失函数并更新权重。
+
+推理与反向空间映射 (Inference & Invertd)：（评估阶段的必须步骤）
+
+在验证/测试阶段，使用滑动窗口（Sliding Window Inference）进行全图预测。
+
+致命细节：必须使用 Invertd 算子，读取原数据的元信息，将预测出的分割掩码“逆向拉伸”回该病人最原始的物理间距和维度。只有在此之后，计算出的 Dice 分数才是临床上绝对准确的
