@@ -34,13 +34,24 @@ def run_offline_preprocessing():
 
         # 3. 保存结果：每个病人一个文件夹
         # [Ref. 3, Section: IO Transforms] - SaveImaged 将中间态持久化至磁盘
+        # [Ref. 1, Section: IO Transforms] - 分离保存逻辑以防止同名元数据覆写
+        # save image, 后缀指定为 image_prep
         SaveImaged(
-            keys=["image", "label"],
+            keys="image",
             output_dir=ConfigPrep.OUTPUT_DIR,
-            output_postfix="prep",
+            output_postfix="image_prep",
             output_ext=".nii.gz",
-            resample=False,  # 已经重采样过了，这里设为 False
-            separate_folder=True  # 满足“每个病人一个独立子文件夹”的需求
+            resample=False,
+            separate_folder=True
+        ),
+        # save label, 后缀指定为 label_prep
+        SaveImaged(
+            keys="label",
+            output_dir=ConfigPrep.OUTPUT_DIR,
+            output_postfix="label_prep",
+            output_ext=".nii.gz",
+            resample=False,
+            separate_folder=True
         )
     ])
 
