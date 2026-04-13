@@ -211,3 +211,5 @@ __marimo__/
 logs
 data
 /.vscode/settings.json
+.vscode
+data_exam_report
