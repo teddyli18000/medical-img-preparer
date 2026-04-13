@@ -210,3 +210,4 @@ __marimo__/
 .idea
 logs
 data
+/.vscode/settings.json
