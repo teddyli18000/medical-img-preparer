@@ -376,13 +376,10 @@ python data_prep\run_preprocess.py
 
 ---
 
-## 11. 最小自检（Minimal sanity check，最小合理性检查）
-
-预处理完成后，建议你至少完成以下自检（均为人工检查）：
-
-1. 随机抽取 1 个样本，确认输出 image_prep 与 label_prep 都存在
-2. 确认两者空间维度一致（shape 相同）
-3. 确认 label 值域仍是离散整数类别（例如 0/1）
-4. 确认 image 强度已在 [0, 1] 范围内（Normalization 生效）
-
-> 以上自检不要求引入本仓库以外的“其他程序逻辑”，只是在数据层面做质量确认。
+# pre
+每个样本的体素个数（Shape）不一样，
+Same：
+物理间距(Spacing) (中位数)
+空间方向(Orientation) (RAS)
+像素值域(Intensity Range) [0,1]
+数据格式(Data Format & Types)   image(C,X,Y,Z), C=1     label uint8
