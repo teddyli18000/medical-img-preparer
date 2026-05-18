@@ -35,6 +35,8 @@ def analyze_dataset_headers(config) -> Dict[str, Any]:
     spacing_rows: List[List[float]] = []
     shape_rows: List[List[int]] = []
     orientation_counter: Counter = Counter()
+    geometry_mismatch_counts: Counter = Counter()
+    mismatch_sample_ids: List[str] = []
 
     for image_path in tqdm(
         image_files,
@@ -54,6 +56,11 @@ def analyze_dataset_headers(config) -> Dict[str, Any]:
             "spacing_xyz": None,
             "shape_xyz": None,
             "orientation": None,
+            "label_spacing_xyz": None,
+            "label_shape_xyz": None,
+            "label_orientation": None,
+            "geometry_match": None,
+            "geometry_mismatch_types": [],
             "read_status": "success",
             "error_message": None,
         }
@@ -86,6 +93,52 @@ def analyze_dataset_headers(config) -> Dict[str, Any]:
             spacing_rows.append(spacing_xyz)
             shape_rows.append(shape_xyz)
             orientation_counter[orientation] += 1
+
+            if label_exists and label_path:
+                label_img = cast(nib.Nifti1Image, nib.load(label_path))
+
+                label_zooms = label_img.header.get_zooms()
+                if len(label_zooms) < config.HEADER_DIMENSIONS:
+                    raise ValueError(
+                        f"Label header zoom dimensions < {config.HEADER_DIMENSIONS}: {len(label_zooms)}"
+                    )
+                label_spacing = [float(label_zooms[i]) for i in range(config.HEADER_DIMENSIONS)]
+
+                label_shape = label_img.shape
+                if len(label_shape) < config.HEADER_DIMENSIONS:
+                    raise ValueError(
+                        f"Label shape dimensions < {config.HEADER_DIMENSIONS}: {len(label_shape)}"
+                    )
+                label_shape_xyz = [int(label_shape[i]) for i in range(config.HEADER_DIMENSIONS)]
+
+                label_orientation_codes = aff2axcodes(label_img.affine)
+                label_orientation = "".join(
+                    code if code is not None else "?" for code in label_orientation_codes[:3]
+                )
+
+                sample_record["label_spacing_xyz"] = label_spacing
+                sample_record["label_shape_xyz"] = label_shape_xyz
+                sample_record["label_orientation"] = label_orientation
+
+                mismatch_types = _compare_geometry(
+                    spacing_xyz,
+                    shape_xyz,
+                    orientation,
+                    nifti_img.affine,
+                    label_spacing,
+                    label_shape_xyz,
+                    label_orientation,
+                    label_img.affine,
+                    config,
+                )
+                if mismatch_types:
+                    sample_record["geometry_match"] = False
+                    sample_record["geometry_mismatch_types"] = mismatch_types
+                    mismatch_sample_ids.append(sample_id)
+                    for item in mismatch_types:
+                        geometry_mismatch_counts[item] += 1
+                else:
+                    sample_record["geometry_match"] = True
 
         except Exception as exc:  # noqa: BLE001 - intentional resilience for bad files
             sample_record["read_status"] = "failed"
@@ -133,6 +186,11 @@ def analyze_dataset_headers(config) -> Dict[str, Any]:
             "missing_label_sample_ids": missing_label_ids,
             "orphan_label_sample_ids": orphan_label_ids,
         },
+        "geometry_consistency": {
+            "mismatch_sample_count": int(len(mismatch_sample_ids)),
+            "mismatch_sample_ids": mismatch_sample_ids,
+            "mismatch_counts": _sorted_counter(geometry_mismatch_counts),
+        },
         "samples": samples,
         "failures": failures,
         "conclusions": conclusions,
@@ -140,6 +198,7 @@ def analyze_dataset_headers(config) -> Dict[str, Any]:
             "header_only": True,
             "voxel_data_loaded": False,
             "reader": "nibabel",
+            "label_header_compared": True,
         },
     }
 
@@ -256,3 +315,49 @@ def _axis_range_summary(axis_stats: Dict[str, Dict[str, Any]]) -> str:
         else:
             chunks.append(f"{axis}: {min_v}~{max_v}")
     return ", ".join(chunks)
+
+
+def _compare_geometry(
+    image_spacing: List[float],
+    image_shape: List[int],
+    image_orientation: str,
+    image_affine: np.ndarray,
+    label_spacing: List[float],
+    label_shape: List[int],
+    label_orientation: str,
+    label_affine: np.ndarray,
+    config,
+) -> List[str]:
+    mismatch_types: List[str] = []
+
+    if not _match_float_list(image_spacing, label_spacing, config.SPACING_ATOL):
+        mismatch_types.append("spacing")
+
+    if not _match_int_list(image_shape, label_shape):
+        mismatch_types.append("shape")
+
+    if image_orientation != label_orientation:
+        mismatch_types.append("orientation")
+
+    if not _match_affine(image_affine, label_affine, config.AFFINE_ATOL):
+        mismatch_types.append("affine")
+
+    return mismatch_types
+
+
+def _match_float_list(left: List[float], right: List[float], atol: float) -> bool:
+    if len(left) != len(right):
+        return False
+    return all(abs(a - b) <= atol for a, b in zip(left, right))
+
+
+def _match_int_list(left: List[int], right: List[int]) -> bool:
+    if len(left) != len(right):
+        return False
+    return all(int(a) == int(b) for a, b in zip(left, right))
+
+
+def _match_affine(left: np.ndarray, right: np.ndarray, atol: float) -> bool:
+    if left.shape != right.shape:
+        return False
+    return bool(np.allclose(left, right, atol=atol))

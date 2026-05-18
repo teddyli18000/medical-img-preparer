@@ -13,6 +13,8 @@
 - 体素间距统计（spacing statistics，间距统计）
 - 体素维度统计（shape statistics，形状统计）
 - 方向编码分布（orientation distribution，方向分布）
+- Image/Label 几何一致性（spacing/shape/orientation/affine）
+- 统计分布可视化（spacing/shape/FOV/orientation/mismatch）
 
 未覆盖（不要误解为已检查）：
 
@@ -45,6 +47,15 @@ python data_exam\run_exam.py
 
 - `stats_<dataset>.json`：结构化结果，便于程序消费
 - `report_<dataset>.md`：人工可读报告
+- `figures/<dataset>/`：报告中引用的 PNG 图（仅供人类阅读，不进入 JSON）
+
+### 2.4 可视化输出
+
+报告会把统计分布图保存到：
+
+- `data_exam_report/figures/<dataset>/`
+
+并在 Markdown 中使用相对路径引用这些 PNG，确保报告可移动、可离线阅读。
 
 ---
 
@@ -65,6 +76,7 @@ python data_exam\run_exam.py
 | Spacing 提取（spacing xyz）                             | `header.get_zooms()`                          | 记录 x/y/z 轴体素间距（mm）         | 间距异质性会影响重采样（resampling，重采样）策略 |
 | Shape 提取（shape xyz）                                 | `nifti_img.shape`                             | 记录 x/y/z 体素尺寸（voxels）       | 尺寸跨度影响 patch 大小、显存预算、裁剪策略      |
 | 方向编码（orientation code，方向编码）                  | `aff2axcodes(affine)`                         | 统计 RAS/LPS 等方向                 | 多方向混杂会造成解剖方向不一致，需标准化         |
+| 几何一致性（geometry consistency，几何一致性）          | image/label header compare                     | spacing/shape/orientation/affine   | 防止 image/label 空间不对齐导致训练无效         |
 | 失败样本明细（failure details，失败明细）               | `failures` + `samples`                        | 记录 sample_id、路径、异常信息      | 支持精确回溯与定点修复                           |
 | 统计聚合（aggregate stats，聚合统计）                   | `_compute_spacing_stats/_compute_shape_stats` | 计算 min/max/median                 | 量化数据分布，给预处理参数提供依据               |
 | 结论生成（conclusions，结论）                           | `_build_conclusions`                          | 自动生成可执行结论文本              | 让报告从“原始数字”变成“可行动判断”           |
@@ -117,6 +129,7 @@ python data_exam\run_exam.py
 - `header_read_failed_count > 0`：优先替换损坏文件，避免把失败样本带入训练。
 - 方向分布多种并存：在预处理中统一到目标方向（例如 RAS）。
 - spacing/shape 范围跨度过大：先定目标 spacing，再做重采样与裁剪参数回推。
+- geometry consistency 出现 mismatch：优先修复 image/label 的 spacing/shape/orientation/affine 对齐问题。
 
 ## 7. 配置与复用建议
 

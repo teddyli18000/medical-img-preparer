@@ -47,6 +47,28 @@ class ConfigExam:
     # -----------------------------
     MARKDOWN_TITLE = "MSD Task07 Dataset EDA Report"
 
+    # -----------------------------
+    # Visualization output (PNG only for MD)
+    # -----------------------------
+    FIGURES_SUBDIR = "figures"
+    FIGURE_DPI = 140
+    FIGURE_BINS = 40
+    FIGURE_SIZE = (6.5, 4.0)
+    FIGURE_COLOR = "#1f4e79"
+    FIGURE_GRID = True
+    FIGURE_MAX_CATEGORIES = 20
+    FIGURE_MAX_MISMATCH_SAMPLES = 30
+    FIGURE_MAX_TOP_K = 12
+    FIGURE_Z_UNIQUE_MAX = 30
+    FIGURE_VALUE_ROUND = 4
+
+    # -----------------------------
+    # Geometry consistency thresholds
+    # -----------------------------
+    AFFINE_ATOL = 1.0e-3
+    SPACING_ATOL = 1.0e-6
+    SHAPE_ATOL = 0
+
     @classmethod
     def raw_data_dir(cls) -> str:
         return os.path.abspath(cls.RAW_DATA_DIR)
@@ -84,6 +106,10 @@ class ConfigExam:
     @classmethod
     def output_paths(cls) -> Tuple[str, str]:
         return cls.stats_output_path(), cls.report_output_path()
+
+    @classmethod
+    def figures_dir(cls) -> str:
+        return os.path.join(cls.REPORT_DIR, cls.FIGURES_SUBDIR, cls.dataset_name())
 
 
 def _sanitize_name(value: str) -> str:
