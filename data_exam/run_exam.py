@@ -8,6 +8,7 @@ if CURRENT_DIR not in sys.path:
 from analyze_headers import analyze_dataset_headers
 from config_exam import ConfigExam
 from report_writer import write_json_report, write_markdown_report
+from plotting import generate_figures
 
 
 def main() -> None:
@@ -22,8 +23,15 @@ def main() -> None:
     print("=" * 72)
 
     result = analyze_dataset_headers(ConfigExam)
+    figure_payload = generate_figures(result, ConfigExam)
+
+    md_payload = dict(result)
+    md_payload["figures"] = figure_payload.get("figures", [])
+    md_payload["distribution_notes"] = figure_payload.get("notes", [])
+    md_payload["figure_warnings"] = figure_payload.get("warnings", [])
+
     write_json_report(result, stats_path, ConfigExam)
-    write_markdown_report(result, report_path, ConfigExam)
+    write_markdown_report(md_payload, report_path, ConfigExam)
 
     summary = result["summary"]
     print("EDA finished.")
