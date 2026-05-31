@@ -213,3 +213,6 @@ data
 /.vscode/settings.json
 .vscode
 data_exam_report
+data_prep_exam_report
+task7_preprocess_validation/output/
+task7_preprocess_validation/__pycache__/
