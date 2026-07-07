@@ -216,3 +216,6 @@ data_exam_report
 data_prep_exam_report
 task7_preprocess_validation/output/
 task7_preprocess_validation/__pycache__/
+task7_preprocess_validation/.chrome-profile/
+task7_preprocess_validation/.edge-profile/
+task7_preprocess_validation/html_render_check*.png
