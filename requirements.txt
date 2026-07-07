@@ -1,0 +1,7 @@
+monai
+torch
+numpy
+nibabel
+tqdm
+matplotlib
+pillow

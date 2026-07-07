@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Task7 Pancreas 预处理三维量化看板</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface-soft: #fafafa;
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --line: #d2d2d7;
+      --blue: #0071e3;
+      --cyan: #00a7c7;
+      --green: #1b7f3a;
+      --orange: #b75f00;
+      --red: #bf263c;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+      --radius: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      letter-spacing: 0;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(245, 245, 247, 0.86);
+      backdrop-filter: blur(18px);
+    }
+
+    nav {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background:
+        linear-gradient(135deg, rgba(0, 113, 227, 0.9), rgba(0, 167, 199, 0.9));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .nav-links a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 34px 24px 64px;
+    }
+
+    section {
+      margin-top: 28px;
+    }
+
+    h1 {
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(34px, 6vw, 72px);
+      line-height: 1.02;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 30px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin-top: 20px;
+      font-size: 19px;
+      color: #424245;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 24px;
+      align-items: stretch;
+      margin-top: 34px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-inner {
+      padding: 22px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: var(--surface-soft);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .pass {
+      color: var(--green);
+    }
+
+    .stage-rail {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .stage {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 14px;
+      min-height: 118px;
+    }
+
+    .stage-index {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .stage-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .stage-copy {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .volume-compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .volume-card {
+      min-height: 520px;
+      overflow: hidden;
+    }
+
+    .scene {
+      height: 310px;
+      display: grid;
+      place-items: center;
+      perspective: 960px;
+      background:
+        linear-gradient(180deg, #fff, #f7f7f8);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .cube {
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(-24deg) rotateY(34deg);
+      animation: breathe 7s ease-in-out infinite;
+    }
+
+    .cube.raw {
+      width: 190px;
+      height: 190px;
+      --depth: 88px;
+      --tone: rgba(0, 113, 227, 0.72);
+      --tone2: rgba(0, 167, 199, 0.4);
+    }
+
+    .cube.prep {
+      width: 184px;
+      height: 156px;
+      --depth: 102px;
+      --tone: rgba(27, 127, 58, 0.72);
+      --tone2: rgba(0, 167, 199, 0.32);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      background:
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 12px),
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.16) 0 1px, transparent 1px 12px),
+        linear-gradient(135deg, var(--tone), var(--tone2));
+      box-shadow: inset 0 0 28px rgba(255, 255, 255, 0.16);
+    }
+
+    .front {
+      transform: translateZ(calc(var(--depth) / 2));
+    }
+
+    .back {
+      transform: rotateY(180deg) translateZ(calc(var(--depth) / 2));
+    }
+
+    .right {
+      width: var(--depth);
+      left: calc(100% - var(--depth) / 2);
+      transform: rotateY(90deg) translateZ(calc(var(--depth) / 2));
+      filter: brightness(0.9);
+    }
+
+    .left {
+      width: var(--depth);
+      left: calc(0px - var(--depth) / 2);
+      transform: rotateY(-90deg) translateZ(calc(var(--depth) / 2));
+      filter: brightness(0.82);
+    }
+
+    .top {
+      height: var(--depth);
+      top: calc(0px - var(--depth) / 2);
+      transform: rotateX(90deg) translateZ(calc(var(--depth) / 2));
+      filter: brightness(1.1);
+    }
+
+    .bottom {
+      height: var(--depth);
+      top: calc(100% - var(--depth) / 2);
+      transform: rotateX(-90deg) translateZ(calc(var(--depth) / 2));
+      filter: brightness(0.74);
+    }
+
+    .axis-label {
+      position: absolute;
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(29, 29, 31, 0.72);
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      padding: 4px 7px;
+      transform: translateZ(84px);
+      white-space: nowrap;
+    }
+
+    .axis-x { bottom: -42px; left: 54px; }
+    .axis-y { right: -62px; top: 72px; }
+    .axis-z { left: -44px; top: -24px; }
+
+    .volume-body {
+      padding: 20px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px 14px;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    .kv dt {
+      color: var(--muted);
+    }
+
+    .kv dd {
+      margin: 0;
+      font-weight: 650;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 13px;
+      vertical-align: top;
+    }
+
+    .comparison-table th {
+      background: #f7f7f8;
+      color: #424245;
+      font-weight: 720;
+    }
+
+    .comparison-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .bar-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 92px;
+      gap: 12px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .bar-track {
+      height: 10px;
+      background: #e8e8ed;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .bar-fill.green {
+      background: var(--green);
+    }
+
+    .definition-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .definition {
+      padding: 18px;
+      min-height: 170px;
+    }
+
+    .definition code,
+    .callout code,
+    td code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: #f0f0f2;
+      border-radius: 5px;
+      padding: 2px 5px;
+      font-size: 12px;
+    }
+
+    .callout {
+      border-left: 4px solid var(--blue);
+      padding: 18px 20px;
+      background: #ffffff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .validation-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .check-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .check {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: var(--surface-soft);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      min-height: 70px;
+    }
+
+    .dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--green);
+      flex: 0 0 auto;
+      margin-top: 2px;
+      position: relative;
+    }
+
+    .dot::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 4px;
+      border-left: 2px solid white;
+      border-bottom: 2px solid white;
+      transform: rotate(-45deg);
+      top: 5px;
+      left: 4px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .warning {
+      border-left-color: var(--orange);
+    }
+
+    footer {
+      margin-top: 42px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: rotateX(-24deg) rotateY(34deg) translateY(0); }
+      50% { transform: rotateX(-22deg) rotateY(39deg) translateY(-6px); }
+    }
+
+    @media (max-width: 920px) {
+      .hero-grid,
+      .volume-compare,
+      .validation-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stage-rail,
+      .definition-grid,
+      .check-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      main {
+        padding: 26px 16px 48px;
+      }
+
+      .stage-rail,
+      .definition-grid,
+      .check-list,
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      .kv {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cube {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="brand"><span class="brand-mark"></span>Task7 预处理量化看板</div>
+      <div class="nav-links">
+        <a href="#pipeline">流程</a>
+        <a href="#volume">三维理解</a>
+        <a href="#metrics">量化指标</a>
+        <a href="#validation">验收结论</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>用三维空间和量化指标理解 Task7 预处理。</h1>
+      <p class="lead">
+        这页把 MSD Task07 Pancreas 的 raw 和 preprocessed 数据放在同一个空间尺度里解释：
+        shape 是体素网格数量，spacing 是每个体素的真实物理尺寸，FOV 是两者相乘后的覆盖范围。
+      </p>
+      <div class="hero-grid">
+        <div class="panel panel-inner">
+          <h2>处理结论</h2>
+          <p>
+            全量验收不依赖人工挑图：281 对 image/mask 全部通过。spacing、orientation、强度范围、
+            label 离散性、mask 非空和 mask/image 体素对应关系均有量化证据。
+          </p>
+          <div class="stage-rail" id="pipeline">
+            <div class="stage">
+              <div class="stage-index">01</div>
+              <div class="stage-title">空间统一</div>
+              <div class="stage-copy">Load, channel-first, RAS orientation。</div>
+            </div>
+            <div class="stage">
+              <div class="stage-index">02</div>
+              <div class="stage-title">裁剪背景</div>
+              <div class="stage-copy">用 image 的 HU 阈值裁剪空气，同时裁剪 mask。</div>
+            </div>
+            <div class="stage">
+              <div class="stage-index">03</div>
+              <div class="stage-title">强度归一化</div>
+              <div class="stage-copy">CT window [-87, 199] 映射到 [0, 1]。</div>
+            </div>
+            <div class="stage">
+              <div class="stage-index">04</div>
+              <div class="stage-title">三维重采样</div>
+              <div class="stage-copy">spacing 到 (0.8027, 0.8027, 2.5)，mask 用 nearest。</div>
+            </div>
+          </div>
+        </div>
+        <aside class="panel panel-inner">
+          <h3>全量验收状态</h3>
+          <div class="status-grid">
+            <div class="metric">
+              <strong class="pass">PASS</strong>
+              <span>overall_status</span>
+            </div>
+            <div class="metric">
+              <strong>281/281</strong>
+              <span>samples passed</span>
+            </div>
+            <div class="metric">
+              <strong>0</strong>
+              <span>failed samples</span>
+            </div>
+            <div class="metric">
+              <strong>12</strong>
+              <span>overlay checks</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="volume">
+      <h2>三维体素网格：处理前后发生了什么</h2>
+      <div class="volume-compare">
+        <article class="panel volume-card">
+          <div class="scene" aria-label="Raw dataset median 3D voxel grid">
+            <div class="cube raw">
+              <div class="face front"></div>
+              <div class="face back"></div>
+              <div class="face right"></div>
+              <div class="face left"></div>
+              <div class="face top"></div>
+              <div class="face bottom"></div>
+              <div class="axis-label axis-x">x: 512</div>
+              <div class="axis-label axis-y">y: 512</div>
+              <div class="axis-label axis-z">z: 93</div>
+            </div>
+          </div>
+          <div class="volume-body">
+            <h3>Raw median volume</h3>
+            <p>原始图像的 x/y shape 固定为 512，但 z 轴层数和 z spacing 差异很大。</p>
+            <dl class="kv">
+              <dt>shape median</dt><dd>(512, 512, 93)</dd>
+              <dt>spacing median</dt><dd>(0.802734, 0.802734, 2.5) mm</dd>
+              <dt>median voxels</dt><dd>24,379,392</dd>
+              <dt>FOV approx</dt><dd>(411.0, 411.0, 232.5) mm</dd>
+            </dl>
+          </div>
+        </article>
+
+        <article class="panel volume-card">
+          <div class="scene" aria-label="Preprocessed dataset median 3D voxel grid">
+            <div class="cube prep">
+              <div class="face front"></div>
+              <div class="face back"></div>
+              <div class="face right"></div>
+              <div class="face left"></div>
+              <div class="face top"></div>
+              <div class="face bottom"></div>
+              <div class="axis-label axis-x">x: 498</div>
+              <div class="axis-label axis-y">y: 421</div>
+              <div class="axis-label axis-z">z: 107</div>
+            </div>
+          </div>
+          <div class="volume-body">
+            <h3>Preprocessed median volume</h3>
+            <p>预处理后 x/y 被前景裁剪缩小，spacing 被统一，z shape 因重采样变为新的网格层数。</p>
+            <dl class="kv">
+              <dt>shape median</dt><dd>(498, 421, 107)</dd>
+              <dt>spacing median</dt><dd>(0.802700, 0.802700, 2.5) mm</dd>
+              <dt>median voxels</dt><dd>22,433,406</dd>
+              <dt>FOV approx</dt><dd>(399.7, 337.9, 267.5) mm</dd>
+            </dl>
+          </div>
+        </article>
+      </div>
+      <p class="small" style="margin-top: 12px;">
+        三维盒子是按中位数 shape/FOV 做的理解模型，不是具体病例的医学诊断图。它用于解释体素网格和物理尺寸的关系。
+      </p>
+    </section>
+
+    <section>
+      <h2>四个基础概念</h2>
+      <div class="definition-grid">
+        <div class="panel definition">
+          <h3>Shape</h3>
+          <p>三维数组尺寸，例如 <code>(512, 512, 93)</code>。它回答“有多少格子”。</p>
+        </div>
+        <div class="panel definition">
+          <h3>Spacing</h3>
+          <p>每个 voxel 的物理大小，单位 mm。它回答“每个格子多大”。</p>
+        </div>
+        <div class="panel definition">
+          <h3>Voxel</h3>
+          <p>三维图像最小单位。Task7 预处理后的 voxel 约为 <code>0.8027 × 0.8027 × 2.5 mm</code>。</p>
+        </div>
+        <div class="panel definition">
+          <h3>FOV</h3>
+          <p><code>FOV = shape × spacing</code>。它回答“整幅图覆盖多大真实空间”。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="metrics">
+      <h2>Raw vs Preprocessed 量化对比</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Raw</th>
+            <th>Preprocessed</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>image / label count</td>
+            <td>281 / 281</td>
+            <td>281 / 281</td>
+            <td>文件数量未丢失。</td>
+          </tr>
+          <tr>
+            <td>geometry mismatch</td>
+            <td>0</td>
+            <td>0</td>
+            <td>image/mask 的 header 几何一致。</td>
+          </tr>
+          <tr>
+            <td>orientation</td>
+            <td>RAS: 281</td>
+            <td>RAS: 281</td>
+            <td>方向统一到 RAS。</td>
+          </tr>
+          <tr>
+            <td>shape median</td>
+            <td>(512, 512, 93)</td>
+            <td>(498, 421, 107)</td>
+            <td>裁剪和重采样共同改变体素网格。</td>
+          </tr>
+          <tr>
+            <td>spacing range x/y</td>
+            <td>0.605469 - 0.976562 mm</td>
+            <td>0.802700 - 0.802734 mm</td>
+            <td>x/y spacing 被统一到目标附近。</td>
+          </tr>
+          <tr>
+            <td>spacing range z</td>
+            <td>0.700012 - 7.500000 mm</td>
+            <td>2.500000 - 2.500000 mm</td>
+            <td>z 轴原始差异最大，预处理后完全统一。</td>
+          </tr>
+          <tr>
+            <td>image intensity</td>
+            <td>HU 原始范围未在 header 中验证</td>
+            <td>0.0 - 1.0</td>
+            <td>体素级验收确认归一化范围。</td>
+          </tr>
+          <tr>
+            <td>label values</td>
+            <td>header-only 未验证</td>
+            <td>{0, 1, 2}</td>
+            <td>nearest 重采样后没有小数标签。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Spacing 统一程度</h2>
+      <div class="panel panel-inner">
+        <div class="bar-list">
+          <div class="bar-row">
+            <strong>Raw z range</strong>
+            <div class="bar-track"><div class="bar-fill" style="width: 100%"></div></div>
+            <span>0.70 - 7.50</span>
+          </div>
+          <div class="bar-row">
+            <strong>Processed z</strong>
+            <div class="bar-track"><div class="bar-fill green" style="width: 33.3%"></div></div>
+            <span>2.50 fixed</span>
+          </div>
+          <div class="bar-row">
+            <strong>Raw x/y range</strong>
+            <div class="bar-track"><div class="bar-fill" style="width: 39%"></div></div>
+            <span>0.61 - 0.98</span>
+          </div>
+          <div class="bar-row">
+            <strong>Processed x/y</strong>
+            <div class="bar-track"><div class="bar-fill green" style="width: 82%"></div></div>
+            <span>0.8027</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="validation">
+      <h2>全量验收：从可视化补到量化</h2>
+      <div class="validation-grid">
+        <div class="panel panel-inner">
+          <div class="check-list">
+            <div class="check"><span class="dot"></span><div><strong>配对完整</strong><div class="small">281 对 image/mask，无缺失或孤立 label。</div></div></div>
+            <div class="check"><span class="dot"></span><div><strong>几何一致</strong><div class="small">shape、spacing、affine、orientation 全量通过。</div></div></div>
+            <div class="check"><span class="dot"></span><div><strong>目标 spacing</strong><div class="small">(0.8027, 0.8027, 2.5) mm，容差 0.0005。</div></div></div>
+            <div class="check"><span class="dot"></span><div><strong>强度范围</strong><div class="small">image 全量 min/max 为 0.0 / 1.0。</div></div></div>
+            <div class="check"><span class="dot"></span><div><strong>标签语义</strong><div class="small">label values 为 {0, 1, 2}，全是整数。</div></div></div>
+            <div class="check"><span class="dot"></span><div><strong>mask 非空</strong><div class="small">281/281 mask 非空。</div></div></div>
+          </div>
+        </div>
+        <aside class="callout">
+          <h3>回答“mask 和 image 是否对应”</h3>
+          <p>
+            几何层面，281 对 image/mask 的 shape、spacing、affine、orientation 全部一致。
+            体素层面，mask-body overlap 最小值为 <strong>0.978796</strong>，中位数为
+            <strong>0.999950</strong>。这说明 mask 没有整体错位、翻转或落在空气背景里。
+          </p>
+        </aside>
+      </div>
+    </section>
+
+    <section>
+      <div class="callout warning">
+        <h3>需要如实说明的点</h3>
+        <p>
+          当前保存后的 label NIfTI header dtype 统计为 <code>float32: 281</code>，
+          不是 <code>uint8</code>。但体素级验收已经确认 label 值严格为
+          <code>{0, 1, 2}</code> 且全是整数，所以不影响 mask/image 对应关系和训练语义。
+          如果后续目标是节省存储或严格 dtype，可以增加 label rewrite 到 uint8 的步骤。
+        </p>
+      </div>
+    </section>
+
+    <footer>
+      指标来源：data_exam_report/stats_Task07_Pancreas.json、
+      data_prep_exam_report/stats_prep_processed_MSD_Task7.json、
+      task7_preprocess_validation/output/summary.json。
+      本页为静态 HTML，不依赖外部网络资源。
+    </footer>
+  </main>
+</body>
+</html>
